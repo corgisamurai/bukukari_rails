@@ -5,6 +5,18 @@ git_source(:github) do |repo_name|
   "https://github.com/#{repo_name}.git"
 end
 
+gem 'http'
+gem 'json'
+gem 'faye-websocket'
+gem 'eventmachine'
+gem 'guard-rspec'
+gem 'rspec-rails'
+gem 'rspec-its'
+gem 'rspec'
+gem 'spring'
+gem 'spring-commands-rspec'
+gem 'factory_girl_rails'
+gem 'database_rewinder'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 gem 'rails', '~> 5.1.0'
