@@ -6,22 +6,29 @@ require 'faye/websocket'
 class BukukariSlackBot
 
   def self.run
-    EM.run { SlackRTMSocket.new(method(:message)) }
+    EM.run { SlackRtmSocket.new(method(:message)) }
   end
 
   def self.message(input, output)
-    p [:message, input]
     output.channel = input.channel
-    if input.text == 'こんにちは'
-      output.send_flag = true
-      output.text = "こんにちは <@#{input.user}> さん"
-    end
+    return hello(input, output)  if input.text == 'こんにちは'
+    return create(input, output) if input.text == 'create'
+  end
+
+  def self.hello(input, output)
+    output.send_flag = true
+    output.text = "こんにちは <@#{input.user}> さん"
     output
   end
 
+  def self.create(input, output)
+    output.send_flag = true
+    output.text = "created by <@#{input.user}>"
+    output
+  end
 end
 
-class SlackRTMInput
+class SlackRtmInput
   attr_accessor :channel, :text, :user
 
   def initialize(data)
@@ -31,26 +38,26 @@ class SlackRTMInput
   end
 end
 
-class SlackRTMOutput
-    attr_accessor :send_flag, :type, :text, :channel
+class SlackRtmOutput
+  attr_accessor :send_flag, :type, :text, :channel
 
-    def initialize
-      @send_flag = false
-      @type = 'message'
-      @text = ''
-      @channel = ''
-    end
+  def initialize
+    @send_flag = false
+    @type = 'message'
+    @text = ''
+    @channel = ''
+  end
 
-    def send?
-      send_flag
-    end
+  def send?
+    send_flag
+  end
 
-    def send_data
-      { type: type, text: text, channel: channel }.to_json
-    end
+  def send_data
+    { type: type, text: text, channel: channel }.to_json
+  end
 end
 
-class SlackRTMSocket
+class SlackRtmSocket
   attr_accessor :ws, :callback
 
   def initialize(callback)
@@ -75,7 +82,8 @@ class SlackRTMSocket
   def message
     ws.on :message do |event|
       data = JSON.parse(event.data)
-      slack_rtm_output = callback.call(SlackRTMInput.new(data), SlackRTMOutput.new)
+      p [:message, data]
+      slack_rtm_output = callback.call(SlackRtmInput.new(data), SlackRtmOutput.new)
       ws.send(slack_rtm_output.send_data) if slack_rtm_output.send?
     end
   end
