@@ -20,7 +20,7 @@ guard
 
 * Services (job queues, cache servers, search engines, etc.)
 ** run Bot server
-rails runner Bot.run
+rails runner BukukariSlackBot.run
 
 * Deployment instructions
 
