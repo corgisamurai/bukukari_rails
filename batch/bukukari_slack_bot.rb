@@ -13,6 +13,7 @@ class BukukariSlackBot
     output.channel = input.channel
     return hello(input, output)  if input.text == 'こんにちは'
     return create(input, output) if input.text == 'create'
+    output
   end
 
   def self.hello(input, output)
@@ -89,7 +90,7 @@ class SlackRtmSocket
   end
 
   def close
-    ws.on :close do
+    ws.on :close do |event|
       p [:close, event.code]
       ws = nil
       EM.stop

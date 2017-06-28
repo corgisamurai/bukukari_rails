@@ -1,4 +1,5 @@
 require 'rails_helper'
+require Rails.root.join('batch/bukukari_slack_bot.rb')
 
 describe '#message' do
   let(:input) {
