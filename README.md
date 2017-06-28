@@ -20,6 +20,7 @@ guard
 
 * Services (job queues, cache servers, search engines, etc.)
 ** run Bot server
+export SLACK_API_TOKEN=***
 rails runner BukukariSlackBot.run
 
 * Deployment instructions
