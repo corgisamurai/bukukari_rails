@@ -11,6 +11,12 @@ class BukukariSlackBot
 
   def self.message(input, output)
     output.channel = input.channel
+    if input.text.present?
+    args = input.text.split(' ')
+    if args[1] == 'create'
+      Book.create(isbn: args[2])
+    end
+  end
     return hello(input, output)  if input.text == 'こんにちは'
     return create(input, output) if input.text == 'create'
     output
