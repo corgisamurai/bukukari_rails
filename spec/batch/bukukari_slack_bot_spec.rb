@@ -12,16 +12,6 @@ describe '#message' do
   let(:output) { SlackRtmOutput.new }
   subject { BukukariSlackBot.message(input, output) }
 
-  it 'say こんにちは when input こんにちは' do
-    input.text = 'こんにちは'
-    expect(subject.text).to eq ('こんにちは <@user> さん')
-  end
-
-  it 'say create when input create' do
-    input.text = 'create'
-    expect(subject.text).to eq ('created by <@user>')
-  end
-
   it 'has Book Model' do
     expect(Book.count).to eq 0
   end
@@ -50,4 +40,34 @@ describe '#message' do
     expect(Book.count).to eq 0
   end
 
+  it 'no response when no text' do
+    input.text = nil
+    expect(subject.send_flag).to be_falsey
+  end
+
+  it 'reply to the user by bot when say "@bot create ISBN"' do
+    input.text = '@bot create 1234567890123'
+    expect(subject.send_flag).to be_truthy
+  end
+
+  it 'reply "@user 登録しました" by bot when say "@bot create ISBN"' do
+    input.text = '@bot create 1234567890123'
+    expect(subject.text).to eq '<@user> 登録しました'
+  end
+
+  it 'reply "@hogehoge 登録しました" by bot when say "@bot create ISBN"' do
+    input.text = '@bot create 1234567890123'
+    input.user = 'hogehoge'
+    expect(subject.text).to eq '<@hogehoge> 登録しました'
+  end
+
+  it 'no response when not @bot mention' do
+    input.text = '@user create 1234567890123'
+    expect(subject.send_flag).to be_falsey
+  end
+
+  it 'no isbn' do
+    input.text = '@bot create'
+    expect(subject.send_flag).to be_falsey
+  end
 end

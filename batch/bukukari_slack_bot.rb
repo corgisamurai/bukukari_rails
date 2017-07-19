@@ -11,28 +11,19 @@ class BukukariSlackBot
 
   def self.message(input, output)
     output.channel = input.channel
-    if input.text.present?
-    args = input.text.split(' ')
-    if args[1] == 'create'
-      Book.create(isbn: args[2])
-    end
-  end
-    return hello(input, output)  if input.text == 'こんにちは'
-    return create(input, output) if input.text == 'create'
-    output
-  end
-
-  def self.hello(input, output)
-    output.send_flag = true
-    output.text = "こんにちは <@#{input.user}> さん"
-    output
+    return output if input.no_text?
+    return output if input.invalid_mention?
+    return output if input.no_option?
+    return create(input, output) if input.create_action?
   end
 
   def self.create(input, output)
+    Book.create(isbn: input.option)
     output.send_flag = true
-    output.text = "created by <@#{input.user}>"
+    output.text = "<@#{input.user}> 登録しました"
     output
   end
+
 end
 
 class SlackRtmInput
@@ -42,6 +33,34 @@ class SlackRtmInput
     @channel = data['channel']
     @text = data['text']
     @user = data['user']
+  end
+
+  def no_text?
+    text == nil
+  end
+
+  def no_option?
+    text.split(' ').count < 3
+  end
+
+  def mention
+    text.split(' ')[0]
+  end
+
+  def action
+    text.split(' ')[1]
+  end
+
+  def option
+    text.split(' ')[2]
+  end
+
+  def create_action?
+    action == 'create'
+  end
+
+  def invalid_mention?
+    mention != '@bot'
   end
 end
 
