@@ -60,7 +60,7 @@ class SlackRtmInput
   end
 
   def invalid_mention?
-    mention != '@bot'
+    mention != '<@U5XABMCFP>'
   end
 end
 
