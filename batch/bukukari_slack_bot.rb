@@ -11,16 +11,27 @@ class BukukariSlackBot
 
   def self.message(input, output)
     output.channel = input.channel
+
     return output if input.no_text?
     return output if input.invalid_mention?
     return output if input.no_option?
+    return search(input, output) if input.search_action? 
     return create(input, output) if input.create_action?
+    return output
   end
 
   def self.create(input, output)
     Book.create(isbn: input.option)
     output.send_flag = true
     output.text = "<@#{input.user}> 登録しました"
+    output
+  end
+
+  def self.search(input, output)
+    books = Book.where('isbn like ?', "%#{input.option}%")
+    output.send_flag = true
+    output.text = "<@#{input.user}> #{books.count}件ヒットしました\n"
+    output.text += books.map.with_index { |book,i| " #{i+1}.ISBN: #{book.isbn}" }.join("\n")
     output
   end
 
@@ -57,6 +68,10 @@ class SlackRtmInput
 
   def create_action?
     action == 'create'
+  end
+  
+  def search_action?
+    action == 'search'
   end
 
   def invalid_mention?

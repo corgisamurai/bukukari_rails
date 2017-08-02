@@ -70,4 +70,62 @@ describe '#message' do
     input.text = '<@U5XABMCFP> create'
     expect(subject.send_flag).to be_falsey
   end
+
+  it 'get msg when say @bot search {isbn}' do
+    Book.create!(isbn: '11111')
+    Book.create!(isbn: '11111')
+    input.user = 'user'
+    input.text = '<@U5XABMCFP> search 11111'
+    expect(subject.text).to include '<@user>¥ 2件ヒットしました'
+  end
+
+  it 'get msg when say @bot search {isbn}' do
+    Book.create!(isbn: '11111')
+    input.user = 'user'
+    input.text = '<@U5XABMCFP> search 11111'
+    expect(subject.text).to include '<@user> 1件ヒットしました'
+  end
+
+  it 'get msg when say @bot search {isbn}' do
+    input.user = 'user'
+    input.text = '<@U5XABMCFP> search 222222'
+    expect(subject.text).to include '<@user> 0件ヒットしました'
+  end
+
+  it 'get msg when say @bot search {isbn}' do
+    Book.create!(isbn: '11111')
+    input.user = 'user'
+    input.text = '<@U5XABMCFP> search 111'
+    expect(subject.text).to include '<@user> 1件ヒットしました'
+  end
+
+  it '' do
+    Book.create!(isbn: 'hoge111')
+    input.user = 'user'
+    input.text = '<@U5XABMCFP> search e'
+    expect(subject.text).to include '<@user> 1件ヒットしました'
+  end
+
+  it 'show the search detail when you say "@bot search {isbn}" ' do
+    Book.create!(isbn: 'hoge111')
+    input.user = 'user'
+    input.text = '<@U5XABMCFP> search hoge111'
+    expect(subject.text).to eq "<@user> 1件ヒットしました\n 1.ISBN: hoge111"
+  end
+
+  it 'show the search detail when you say "@bot search {isbn}" ' do
+    Book.create!(isbn: 'hoge111')
+    Book.create!(isbn: 'huga111')
+    input.user = 'user'
+    input.text = '<@U5XABMCFP> search 111'
+    expect(subject.text).to eq "<@user> 2件ヒットしました\n 1.ISBN: hoge111\n 2.ISBN: huga111"
+  end
+
+  it 'show the search detail when you say "@bot search {isbn}" ' do
+    Book.create!(isbn: 'hoge111')
+    Book.create!(isbn: 'huga111')
+    input.user = 'user2'
+    input.text = '<@U5XABMCFP> search 111'
+    expect(subject.text).to eq "<@user2> 2件ヒットしました\n 1.ISBN: hoge111\n 2.ISBN: huga111"
+  end
 end
