@@ -265,6 +265,7 @@ DEPENDENCIES
   rails (~> 5.1.0)
   rspec
   rspec-its
+  rspec-mocks
   rspec-rails
   sass-rails (~> 5.0)
   selenium-webdriver

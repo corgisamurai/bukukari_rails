@@ -2,6 +2,28 @@ require 'http'
 require 'json'
 require 'eventmachine'
 require 'faye/websocket'
+require 'net/http'
+require 'net/https'
+require 'uri'
+
+class GoogleBookApi
+
+  def book_title(isbn)
+    https = Net::HTTP.new("www.googleapis.com", 443) 
+    https.use_ssl = true
+    https.verify_mode = OpenSSL::SSL::VERIFY_PEER
+    res = https.start { |w|
+      w.get("/books/v1/volumes?q=isbn:#{isbn}")
+    }
+    json = JSON.parse(res.body)
+    if json['totalItems'] == 0
+      nil
+    else
+      json['items'][0]['volumeInfo']['title']
+    end
+  end
+
+end
 
 class BukukariSlackBot
 
@@ -21,7 +43,13 @@ class BukukariSlackBot
   end
 
   def self.create(input, output)
-    Book.create(isbn: input.option)
+    book_title = GoogleBookApi.new.book_title(input.option)
+    if book_title.nil?
+      output.send_flag = true
+      output.text = '指定したISBNコードは存在しません'
+      return output
+    end
+    Book.create(isbn: input.option, title: book_title)
     output.send_flag = true
     output.text = "<@#{input.user}> 登録しました"
     output

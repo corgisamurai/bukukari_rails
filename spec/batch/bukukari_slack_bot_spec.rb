@@ -2,6 +2,7 @@ require 'rails_helper'
 require Rails.root.join('batch/bukukari_slack_bot.rb')
 
 describe '#message' do
+  let(:exist_isbn) { '9784797388268' }
   let(:input) {
     SlackRtmInput.new({
       'channel' => 'channel',
@@ -16,26 +17,14 @@ describe '#message' do
     expect(Book.count).to eq 0
   end
 
-  it 'create book when say "@bot create isbn"' do
-    input.text = '<@U5XABMCFP> create 1234567890123'
-    subject
-    expect(Book.count).to eq 1
-  end
-
-  it 'create book when say "@bot create isbn"' do
-    input.text = '<@U5XABMCFP> create 1234567890123'
-    subject
-    expect(Book.where(isbn: '1234567890123').count).to eq 1
-  end
-
   it 'not create book when say "@bot hoge isbn"' do
-    input.text = '<@U5XABMCFP> hoge 1234567890123'
+    input.text = "<@U5XABMCFP> hoge #{exist_isbn}"
     subject
     expect(Book.count).to eq 0
   end
 
   it 'not create book when say "@bot fuga isbn"' do
-    input.text = '<@U5XABMCFP> fuga 1234567890123'
+    input.text = "<@U5XABMCFP> fuga #{exist_isbn}"
     subject
     expect(Book.count).to eq 0
   end
@@ -45,38 +34,12 @@ describe '#message' do
     expect(subject.send_flag).to be_falsey
   end
 
-  it 'reply to the user by bot when say "@bot create ISBN"' do
-    input.text = '<@U5XABMCFP> create 1234567890123'
-    expect(subject.send_flag).to be_truthy
-  end
-
-  it 'reply "@user 登録しました" by bot when say "@bot create ISBN"' do
-    input.text = '<@U5XABMCFP> create 1234567890123'
-    expect(subject.text).to eq '<@user> 登録しました'
-  end
-
-  it 'reply "@hogehoge 登録しました" by bot when say "@bot create ISBN"' do
-    input.text = '<@U5XABMCFP> create 1234567890123'
-    input.user = 'hogehoge'
-    expect(subject.text).to eq '<@hogehoge> 登録しました'
-  end
-
-  it 'no response when not @bot mention' do
-    input.text = '@user create 1234567890123'
-    expect(subject.send_flag).to be_falsey
-  end
-
-  it 'no isbn' do
-    input.text = '<@U5XABMCFP> create'
-    expect(subject.send_flag).to be_falsey
-  end
-
   it 'get msg when say @bot search {isbn}' do
     Book.create!(isbn: '11111')
     Book.create!(isbn: '11111')
     input.user = 'user'
     input.text = '<@U5XABMCFP> search 11111'
-    expect(subject.text).to include '<@user>¥ 2件ヒットしました'
+    expect(subject.text).to include '<@user> 2件ヒットしました'
   end
 
   it 'get msg when say @bot search {isbn}' do
@@ -127,5 +90,73 @@ describe '#message' do
     input.user = 'user2'
     input.text = '<@U5XABMCFP> search 111'
     expect(subject.text).to eq "<@user2> 2件ヒットしました\n 1.ISBN: hoge111\n 2.ISBN: huga111"
+  end
+
+  it 'has title in Book' do
+    Book.create(title: 'test')
+  end
+
+  it 'no response when not @bot mention' do
+    input.text = '@user create 1234567890123'
+    expect(subject.send_flag).to be_falsey
+  end
+
+  it 'no isbn' do
+    input.text = '<@U5XABMCFP> create'
+    expect(subject.send_flag).to be_falsey
+  end
+
+
+  context 'create' do
+    before do
+      allow_any_instance_of(GoogleBookApi).to receive(:book_title).and_return('アラビアの夜の種族')
+    end
+    it 'reply to the user by bot when say "@bot create ISBN"' do
+      input.text = "<@U5XABMCFP> create #{exist_isbn}"
+      expect(subject.send_flag).to be_truthy
+    end
+
+    it 'reply "@user 登録しました" by bot when say "@bot create ISBN"' do
+      input.text = "<@U5XABMCFP> create #{exist_isbn}"
+      expect(subject.text).to eq '<@user> 登録しました'
+    end
+
+    it 'reply "@hogehoge 登録しました" by bot when say "@bot create ISBN"' do
+      input.text = "<@U5XABMCFP> create #{exist_isbn}"
+      input.user = 'hogehoge'
+      expect(subject.text).to eq '<@hogehoge> 登録しました'
+    end
+
+    it 'create book with title' do
+      input.text = '<@U5XABMCFP> create 9784043636037'
+      subject
+      expect(Book.last.title).to eq 'アラビアの夜の種族'
+    end
+
+    it 'create book when say "@bot create isbn"' do
+      input.text = "<@U5XABMCFP> create #{exist_isbn}"
+      subject
+      expect(Book.count).to eq 1
+    end
+
+    it 'create book when say "@bot create isbn"' do
+      input.text = "<@U5XABMCFP> create #{exist_isbn}"
+      subject
+      expect(Book.where(isbn: exist_isbn).count).to eq 1
+    end
+
+    it 'dont create book if not exist book information' do
+      allow_any_instance_of(GoogleBookApi).to receive(:book_title).and_return(nil)
+      input.text = '<@U5XABMCFP> create 3'
+      subject
+      expect(Book.last).to be nil 
+    end
+
+    it 'say no data if not exist isbn' do
+      allow_any_instance_of(GoogleBookApi).to receive(:book_title).and_return(nil)
+      input.text = '<@U5XABMCFP> create 3'
+      expect(subject.text).to eq '指定したISBNコードは存在しません'
+    end
+
   end
 end
