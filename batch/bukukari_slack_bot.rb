@@ -8,18 +8,22 @@ require 'uri'
 
 class GoogleBookApi
 
-  def book_title(isbn)
+  def request(isbn)
     https = Net::HTTP.new("www.googleapis.com", 443) 
     https.use_ssl = true
     https.verify_mode = OpenSSL::SSL::VERIFY_PEER
     res = https.start { |w|
       w.get("/books/v1/volumes?q=isbn:#{isbn}")
     }
-    json = JSON.parse(res.body)
+    JSON.parse(res.body)
+  end
+
+  def book(isbn)
+    json = request(isbn)
     if json['totalItems'] == 0
       nil
     else
-      json['items'][0]['volumeInfo']['title']
+      json['items'][0]
     end
   end
 
@@ -43,23 +47,27 @@ class BukukariSlackBot
   end
 
   def self.create(input, output)
-    book_title = GoogleBookApi.new.book_title(input.option)
-    if book_title.nil?
+    book = GoogleBookApi.new.book(input.option)
+    if book.nil?
       output.send_flag = true
       output.text = '指定したISBNコードは存在しません'
       return output
     end
+    book_title = book['volumeInfo']['title']
+    image_url = book['volumeInfo']['imageLinks']["thumbnail"]
     Book.create(isbn: input.option, title: book_title)
     output.send_flag = true
-    output.text = "<@#{input.user}> 登録しました"
+    output.text = "<@#{input.user}> 登録しました TITLE: #{book_title} IMAGE_URL: #{image_url}"
     output
   end
 
   def self.search(input, output)
-    books = Book.where('isbn like ?', "%#{input.option}%")
     output.send_flag = true
+    books = Book
+      .where('isbn like ?', "%#{input.option}%")
+      .or(Book.where('title like ?', "%#{input.option}%"))
     output.text = "<@#{input.user}> #{books.count}件ヒットしました\n"
-    output.text += books.map.with_index { |book,i| " #{i+1}.ISBN: #{book.isbn}" }.join("\n")
+    output.text += books.map.with_index { |book,i| " #{i+1}.ISBN: #{book.isbn} TITLE: #{book.title}" }.join("\n")
     output
   end
 
