@@ -50,6 +50,7 @@ class BukukariSlackBot
   def self.create(input, output)
     books = Book.where(isbn: input.option)
     if books.present?
+      output.send_flag = true
       output.text = 'すでに登録されています'
       return output
     end
@@ -79,7 +80,10 @@ class BukukariSlackBot
   end
 
   def self.borrow(input, output)
-    output.text = "<@#{input.user}> 貸し出ししました TITLE: #{input.option}"
+    output.send_flag = true
+    book = Book.find_by(title: input.option)
+    Borrow.create(borrower: input.user, book_id: book.id) 
+    output.text = "<@#{input.user}> 貸出ししました TITLE: #{input.option}"
     output
   end
 end

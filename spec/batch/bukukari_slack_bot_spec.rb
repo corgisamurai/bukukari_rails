@@ -203,16 +203,25 @@ describe '#message' do
   end
 
   context 'borrow' do
-    it 'reply "@user 貸し出ししました" by bot when say "@bot borrowやさしいJava"' do
+      let(:book){ Book.create!(isbn: '9784797388268', title: 'やさしいJava')}
+
+      before do
+        book
+      end
+    it 'reply "@user 貸出ししました" by bot when say "@bot borrowやさしいJava"' do
       input.text = "<@U5XABMCFP> borrow やさしいJava"
       input.user = 'hogehoge'
-      expect(subject.text).to include '<@hogehoge> 貸し出ししました TITLE: やさしいJava'
+      expect(subject.text).to include '<@hogehoge> 貸出ししました TITLE: やさしいJava'
     end
 
-     it 'reply "@user 貸し出ししました" by bot when say "@bot borrowやさしいRuby"' do
-      input.text = "<@U5XABMCFP> borrow やさしいRuby"
+    it 'create borrow data' do
+      input.text = "<@U5XABMCFP> borrow やさしいJava"
       input.user = 'hogehoge'
-      expect(subject.text).to include '<@hogehoge> 貸し出ししました TITLE: やさしいRuby'
+      subject
+      result = Borrow.last
+      expect(result.borrower).to eq 'hogehoge'
+      expect(result.book_id).to eq book.id
     end
+
   end
 end
