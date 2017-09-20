@@ -194,5 +194,25 @@ describe '#message' do
       expect(subject.text).to eq '指定したISBNコードは存在しません'
     end
 
+    it 'create book when create already' do
+      allow_any_instance_of(GoogleBookApi).to receive(:book).and_return(json)
+      Book.create!(isbn: '9784797388268', title: 'やさしいJava')
+      input.text = '<@U5XABMCFP> create 9784797388268'
+      expect(subject.text).to eq 'すでに登録されています'
+    end
+  end
+
+  context 'borrow' do
+    it 'reply "@user 貸し出ししました" by bot when say "@bot borrowやさしいJava"' do
+      input.text = "<@U5XABMCFP> borrow やさしいJava"
+      input.user = 'hogehoge'
+      expect(subject.text).to include '<@hogehoge> 貸し出ししました TITLE: やさしいJava'
+    end
+
+     it 'reply "@user 貸し出ししました" by bot when say "@bot borrowやさしいRuby"' do
+      input.text = "<@U5XABMCFP> borrow やさしいRuby"
+      input.user = 'hogehoge'
+      expect(subject.text).to include '<@hogehoge> 貸し出ししました TITLE: やさしいRuby'
+    end
   end
 end

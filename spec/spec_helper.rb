@@ -1,6 +1,7 @@
 require 'rails_helper'
 
-require 'rspec/rails'
+require 'rails'
+require 'rails/all'
 
 RSpec.configure do |config|
   config.before(:suite) do

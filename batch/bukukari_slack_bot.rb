@@ -43,10 +43,17 @@ class BukukariSlackBot
     return output if input.no_option?
     return search(input, output) if input.search_action? 
     return create(input, output) if input.create_action?
+    return borrow(input, output) if input.borrow_action?
     return output
   end
 
   def self.create(input, output)
+    books = Book.where(isbn: input.option)
+    if books.present?
+      output.text = 'すでに登録されています'
+      return output
+    end
+
     book = GoogleBookApi.new.book(input.option)
     if book.nil?
       output.send_flag = true
@@ -64,13 +71,17 @@ class BukukariSlackBot
   def self.search(input, output)
     output.send_flag = true
     books = Book
-      .where('isbn like ?', "%#{input.option}%")
-      .or(Book.where('title like ?', "%#{input.option}%"))
+    .where('isbn like ?', "%#{input.option}%")
+    .or(Book.where('title like ?', "%#{input.option}%"))
     output.text = "<@#{input.user}> #{books.count}件ヒットしました\n"
     output.text += books.map.with_index { |book,i| " #{i+1}.ISBN: #{book.isbn} TITLE: #{book.title}" }.join("\n")
     output
   end
 
+  def self.borrow(input, output)
+    output.text = "<@#{input.user}> 貸し出ししました TITLE: #{input.option}"
+    output
+  end
 end
 
 class SlackRtmInput
@@ -105,7 +116,9 @@ class SlackRtmInput
   def create_action?
     action == 'create'
   end
-  
+  def borrow_action?
+     action == 'borrow'
+  end
   def search_action?
     action == 'search'
   end
