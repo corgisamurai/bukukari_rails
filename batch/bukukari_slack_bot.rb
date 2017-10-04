@@ -81,10 +81,21 @@ class BukukariSlackBot
 
   def self.borrow(input, output)
     output.send_flag = true
-    book = Book.find_by(title: input.option)
-    Borrow.create(borrower: input.user, book_id: book.id) 
-    output.text = "<@#{input.user}> 貸出ししました TITLE: #{input.option}"
+    book = Book.where(title: input.option).or(Book.where(isbn: input.option)).first
+    output.text = borrow_check(input, book)
+
     output
+  end
+
+  def self.borrow_check(input, book)
+    if book.present?
+      borrow = Borrow.find_by(book_id: book.id)
+      Borrow.create(borrower: input.user, book_id: book.id) if borrow.blank?
+    end
+
+    return "<@#{input.user}> そのような本はございません" if book.blank?
+    return "<@#{input.user}> #{borrow.borrower}さんに貸出中です TITLE: #{book.title}" if borrow.present?
+    "<@#{input.user}> 貸出ししました TITLE: #{input.option}"
   end
 end
 
