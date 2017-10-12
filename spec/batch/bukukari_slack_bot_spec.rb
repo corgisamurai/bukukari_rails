@@ -101,6 +101,18 @@ describe '#message' do
     expect(subject.text).to include "2.ISBN: huga111"
   end
 
+  it 'show the search detail with borroing status when you say "@bot search {isbn}" ' do
+    book = Book.create!(isbn: 'hoge111')
+    Book.create!(isbn: 'huga111')
+    Borrow.create(borrower: 'hogehoge',book_id: book.id) 
+    input.user = 'user'
+    input.text = '<@U5XABMCFP> search 111'
+    expect(subject.text).to include "<@user> 2件ヒットしました"
+    expect(subject.text).to include "1.ISBN: hoge111 TITLE: 貸出中"
+    expect(subject.text).to include "2.ISBN: huga111 TITLE:"
+  end
+
+ 
   it 'show the search detail when you say "@bot search {isbn}" ' do
     Book.create!(isbn: 'hoge111')
     Book.create!(isbn: 'huga111')
@@ -202,6 +214,34 @@ describe '#message' do
       end
     end
 
+    context 'return' do
+      it 'reply the message with the title of book when say "@bot return Hoge Book"' do
+        book = Book.create(isbn:'1234567890123', title: 'HogeBook')
+        Borrow.create(borrower: 'hoge', book_id: book.id)
+        input.user = 'hoge'
+        input.text = '<@U5XABMCFP> back HogeBook'
+        expect(subject.text).to include "HogeBookを返却しました"
+        expect(Borrow.find_by(book_id: book.id)).to eq nil
+      end
+
+      it 'replay the message with the title of Fuga book when say "@bot return Fuga Book' do
+        book = Book.create(isbn:'123', title: 'FugaBook')
+        Borrow.create(borrower: 'hoge', book_id: book.id)
+        input.user = 'hoge'
+        input.text = '<@U5XABMCFP> back FugaBook'
+        expect(subject.text).to include "FugaBookを返却しました"
+      end
+
+      it 'not back other people' do
+        book = Book.create(isbn:'123', title: 'FugaBook')
+        Borrow.create(borrower: 'hoge', book_id: book.id)
+
+        input.user = 'foo'
+        input.text = '<@U5XABMCFP> back FugaBook'
+        expect(subject.text).to include 'あなたは借りてません TITLE: FugaBook'
+      end
+    end
+
     context 'borrow' do
       let(:book){ Book.create!(isbn: '9784797388268', title: 'やさしいJava')}
 
@@ -211,6 +251,12 @@ describe '#message' do
 
       it 'reply "@user 貸出ししました" by bot when say "@bot borrowやさしいJava"' do
         input.text = "<@U5XABMCFP> borrow やさしいJava"
+        input.user = 'hogehoge'
+        expect(subject.text).to include '<@hogehoge> 貸出ししました TITLE: やさしいJava'
+      end
+
+      it '' do
+        input.text = "<@U5XABMCFP> borrow 9784797388268"
         input.user = 'hogehoge'
         expect(subject.text).to include '<@hogehoge> 貸出ししました TITLE: やさしいJava'
       end
@@ -236,7 +282,7 @@ describe '#message' do
         Borrow.create!(borrower: 'hogehoge', book_id: book.id)
         input.text = "<@U5XABMCFP> borrow 9784797388268"
         input.user = 'fugafuga'
-        expect(subject.text).to include '<@fugafuga> hogehogeさんに貸出中です TITLE: やさしいJava'
+        expect(subject.text).to include '<@fugafuga> <@hogehoge>さんに貸出中です TITLE: やさしいJava'
       end
 
       it 'show the message when the book dose not exist' do

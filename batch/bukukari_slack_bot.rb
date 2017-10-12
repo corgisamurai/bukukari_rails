@@ -37,50 +37,64 @@ class BukukariSlackBot
 
   def self.message(input, output)
     output.channel = input.channel
-
     return output if input.no_text?
     return output if input.invalid_mention?
     return output if input.no_option?
-    return search(input, output) if input.search_action? 
-    return create(input, output) if input.create_action?
-    return borrow(input, output) if input.borrow_action?
-    return output
+    begin
+      output = send(input.action, input, output)
+      output.send_flag = true
+      return output
+    rescue => e
+      pp e.message
+      return output
+    end
   end
 
   def self.create(input, output)
     books = Book.where(isbn: input.option)
     if books.present?
-      output.send_flag = true
       output.text = 'すでに登録されています'
       return output
     end
 
     book = GoogleBookApi.new.book(input.option)
     if book.nil?
-      output.send_flag = true
       output.text = '指定したISBNコードは存在しません'
       return output
     end
     book_title = book['volumeInfo']['title']
     image_url = book['volumeInfo']['imageLinks']["thumbnail"]
     Book.create(isbn: input.option, title: book_title)
-    output.send_flag = true
     output.text = "<@#{input.user}> 登録しました TITLE: #{book_title} IMAGE_URL: #{image_url}"
     output
   end
 
+  def self.back(input, output)
+    book = Book.find_by(title: input.option)
+    borrow = Borrow.find_by(book_id: book.id)
+    if borrow.borrower != input.user
+      output.text = "あなたは借りてません TITLE: #{book.title}"
+    else
+      borrow.delete
+      output.text = "#{input.option}を返却しました"
+    end
+     output
+  end
+
   def self.search(input, output)
-    output.send_flag = true
     books = Book
     .where('isbn like ?', "%#{input.option}%")
     .or(Book.where('title like ?', "%#{input.option}%"))
     output.text = "<@#{input.user}> #{books.count}件ヒットしました\n"
-    output.text += books.map.with_index { |book,i| " #{i+1}.ISBN: #{book.isbn} TITLE: #{book.title}" }.join("\n")
+    output.text += books.map.with_index { |book, i| " #{i+1}.ISBN: #{book.isbn} TITLE: #{book.title}" "#{borrow_status(book)}" }.join("\n")
     output
   end
 
+  def self.borrow_status(book)
+    '貸出中' if Borrow.find_by(book_id: book.id)
+  end
+
   def self.borrow(input, output)
-    output.send_flag = true
     book = Book.where(title: input.option).or(Book.where(isbn: input.option)).first
     output.text = borrow_check(input, book)
 
@@ -88,14 +102,11 @@ class BukukariSlackBot
   end
 
   def self.borrow_check(input, book)
-    if book.present?
-      borrow = Borrow.find_by(book_id: book.id)
-      Borrow.create(borrower: input.user, book_id: book.id) if borrow.blank?
-    end
-
     return "<@#{input.user}> そのような本はございません" if book.blank?
-    return "<@#{input.user}> #{borrow.borrower}さんに貸出中です TITLE: #{book.title}" if borrow.present?
-    "<@#{input.user}> 貸出ししました TITLE: #{input.option}"
+    borrow = Borrow.find_by(book_id: book.id)
+    return "<@#{input.user}> <@#{borrow.borrower}>さんに貸出中です TITLE: #{book.title}" if borrow.present?
+    Borrow.create(borrower: input.user, book_id: book.id)
+    "<@#{input.user}> 貸出ししました TITLE: #{book.title}"
   end
 end
 
