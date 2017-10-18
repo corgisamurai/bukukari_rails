@@ -108,7 +108,7 @@ describe '#message' do
     input.user = 'user'
     input.text = '<@U5XABMCFP> search 111'
     expect(subject.text).to include "<@user> 2件ヒットしました"
-    expect(subject.text).to include "1.ISBN: hoge111 TITLE: 貸出中"
+    expect(subject.text).to include "1.ISBN: hoge111 TITLE: 貸出中 <@hogehoge>"
     expect(subject.text).to include "2.ISBN: huga111 TITLE:"
   end
 
@@ -220,7 +220,7 @@ describe '#message' do
         Borrow.create(borrower: 'hoge', book_id: book.id)
         input.user = 'hoge'
         input.text = '<@U5XABMCFP> back HogeBook'
-        expect(subject.text).to include "HogeBookを返却しました"
+        expect(subject.text).to include "<@hoge> HogeBookを返却しました"
         expect(Borrow.find_by(book_id: book.id)).to eq nil
       end
 
@@ -232,13 +232,33 @@ describe '#message' do
         expect(subject.text).to include "FugaBookを返却しました"
       end
 
+      it 'error msg when not exist book' do
+        input.text = '<@U5XABMCFP> back NotExistBook'
+        expect(subject.text).to include '指定された本は存在しません'
+      end
+
       it 'not back other people' do
         book = Book.create(isbn:'123', title: 'FugaBook')
         Borrow.create(borrower: 'hoge', book_id: book.id)
 
         input.user = 'foo'
         input.text = '<@U5XABMCFP> back FugaBook'
-        expect(subject.text).to include 'あなたは借りてません TITLE: FugaBook'
+        expect(subject.text).to include '<@foo> あなたは借りてません TITLE: FugaBook'
+      end
+    end
+
+    context 'my' do
+      it 'get my borrow list when say @bot my' do
+        input.user = 'foo'
+        input.text = '<@U5XABMCFP> my book'
+        expect(subject.text).to include '<@foo> あなたは借りてません'
+      end
+      it 'get my borrow list when say @bot my' do
+        book = Book.create(isbn:'123', title: 'FugaBook')
+        Borrow.create(borrower: 'foo', book_id: book.id)
+        input.user = 'foo'
+        input.text = '<@U5XABMCFP> my book'
+        expect(subject.text).to include 'FugaBook'
       end
     end
 

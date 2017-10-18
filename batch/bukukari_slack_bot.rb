@@ -50,6 +50,16 @@ class BukukariSlackBot
     end
   end
 
+  def self.my(input, output)
+    borrows = Borrow.where(borrower: input.user)
+    if borrows.present?
+      output.text = "<@#{input.user}> #{borrows.collect{|b|b.book.title}}"
+      return output
+    end
+    output.text = "<@#{input.user}> あなたは借りてません"
+    output
+  end
+
   def self.create(input, output)
     books = Book.where(isbn: input.option)
     if books.present?
@@ -71,12 +81,16 @@ class BukukariSlackBot
 
   def self.back(input, output)
     book = Book.find_by(title: input.option)
+    if book.blank?
+      output.text = "指定された本は存在しません"
+      return output
+    end
     borrow = Borrow.find_by(book_id: book.id)
     if borrow.borrower != input.user
-      output.text = "あなたは借りてません TITLE: #{book.title}"
+      output.text = "<@#{input.user}> あなたは借りてません TITLE: #{book.title}"
     else
       borrow.delete
-      output.text = "#{input.option}を返却しました"
+      output.text = "<@#{input.user}> #{input.option}を返却しました"
     end
      output
   end
@@ -91,7 +105,9 @@ class BukukariSlackBot
   end
 
   def self.borrow_status(book)
-    '貸出中' if Borrow.find_by(book_id: book.id)
+    borrow =  Borrow.find_by(book_id: book.id)
+    return if borrow.blank?
+    "貸出中 <@#{borrow.borrower}>" 
   end
 
   def self.borrow(input, output)
@@ -137,16 +153,6 @@ class SlackRtmInput
 
   def option
     text.split(' ')[2]
-  end
-
-  def create_action?
-    action == 'create'
-  end
-  def borrow_action?
-     action == 'borrow'
-  end
-  def search_action?
-    action == 'search'
   end
 
   def invalid_mention?
